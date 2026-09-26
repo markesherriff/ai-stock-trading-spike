@@ -1,5 +1,8 @@
 # AI Stock Trading Spike
 
+> 🚧 **WIP — active spike, not a finished project.** Hypothesis, stack, and
+> structure are all still subject to change as research continues.
+
 **Status:** Spike / proof-of-concept. No real money at any stage of this repo. Paper trading only.
 
 ## Hypothesis
