@@ -1,0 +1,7 @@
+vectorbt
+pandas
+numpy
+scikit-learn
+lightgbm
+yfinance
+ib_async
