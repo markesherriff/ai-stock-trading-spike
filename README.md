@@ -63,7 +63,7 @@ technical/ML/sentiment signals, data sources) is in
 | Concern | Choice | Why |
 |---|---|---|
 | Backtesting engine | Custom cost-aware engine in [`src/backtest.py`](src/backtest.py) ([vectorbt](https://github.com/polakowo/vectorbt) kept as an option for later parameter sweeps) | Next-open execution, whole shares and IBKR's per-order commission minimums are explicit and unit-tested against the live cost figures; the Deflated Sharpe Ratio still needs adding for the model step |
-| Signal modeling | gradient boosting (LightGBM/XGBoost), patterned on [`stefan-jansen/machine-learning-for-trading`](https://github.com/stefan-jansen/machine-learning-for-trading) | Peer-reviewed support for this class of model; that repo is the closest existing reference implementation for this exact shape of project |
+| Signal modeling | gradient boosting (scikit-learn `HistGradientBoostingRegressor`; LightGBM/XGBoost are drop-in options but LightGBM needs a system library), patterned on [`stefan-jansen/machine-learning-for-trading`](https://github.com/stefan-jansen/machine-learning-for-trading) | Peer-reviewed support for this class of model; that repo is the closest existing reference implementation for this exact shape of project |
 | Paper execution (strategy validation target) | [ib_async](https://github.com/ib-api-reloaded/ib_async) via IBKR paper trading account | IBKR has real Canadian retail access for opening an account and API-trading US-listed securities; `ib_async` is the actively maintained successor to the now-dead `ib_insync`. CIRO rules bar API orders on *Canadian* marketplaces for any DIY account regardless of broker — not an IBKR limitation, see research doc |
 | Paper execution (website, for now) | [Alpaca](https://alpaca.markets) paper trading API | Pure cloud REST/WebSocket, free unlimited paper trading, no local gateway app to run — much faster to develop the website against. US equities only; doesn't replace IBKR for the Canadian-access goal above |
 | Historical price data | IBKR historical data API (paper account) and/or `yfinance` for quick iteration | Free tiers sufficient for a daily/weekly-horizon backtest |
@@ -87,10 +87,21 @@ frontend/     React + TypeScript (Vite) website — account/positions view, manu
 ```bash
 /opt/homebrew/bin/python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest -q                 # unit tests
-python -m src.run_baselines         # downloads bars on first run (needs backend/.env keys), then backtests
+python -m pytest -q                  # unit tests (cost model, no-look-ahead checks, execution planner)
+python -m src.run_baselines          # ETF baselines (downloads bars on first run; needs backend/.env keys)
+python -m src.download_universe      # bars for every S&P 500 member since 2016 (point-in-time membership)
+python -m src.run_model              # the pre-registered pooled weekly model test (~90 s)
+python -m src.live --strategy sma200_trend --force   # DRY RUN of a paper rebalance on Alpaca
+python -m src.live --strategy sma200_trend --place-orders   # submit to the PAPER account
+scripts/install_schedule.sh          # macOS LaunchAgent: weekdays 08:00, rebalances only after a month-end
+scripts/install_schedule.sh --uninstall
 ```
 
+The schedule runs `scripts/run_rebalance.sh`, which logs to `data/live/rebalance.log`. The first paper
+rebalance (200-day trend on 10 ETFs, about $10,000 in each ETF above its average) was placed on 2026-10-02.
+
+`src.live` only talks to Alpaca's paper endpoint, only touches its own symbols, and refuses to run the
+pooled model, which failed validation (see [`docs/model-results.md`](docs/model-results.md)).
 ## Running the website (paper trading)
 
 This is a basic web UI for watching an Alpaca **paper** account and placing
@@ -137,15 +148,17 @@ see that table's note on why.
 ## Next steps
 
 - [x] Data source: Alpaca daily bars (SIP, split/dividend-adjusted, free back to 2016) cached in `data/`
-- [ ] Pick the stock universe for the pooled model (survivorship-bias-free list; the baselines use a 10-ETF universe)
+- [x] Stock universe for the pooled model: point-in-time S&P 500 membership (third-party dataset, ~99% price coverage including delisted names)
 - [x] Baselines: SPY buy-and-hold, equal-weight ETFs, SMA-200 trend, Donchian breakout — results in [`docs/baseline-results.md`](docs/baseline-results.md)
 - [ ] Feature engineering pipeline (price/volume), including candlestick/pattern features on daily and weekly bars
 - [x] Cost-aware backtest harness using the broker-specific fee models (IBKR per-order minimums, assumed spread)
-- [ ] Nested walk-forward validation of any per-stock/per-regime pattern selection, counting every candidate as a trial
+- [x] Pooled weekly model on price/volume + candlestick features: **failed the gate** ([`docs/model-results.md`](docs/model-results.md)); per-stock/per-regime selection stays untested and would need nested validation
 - [ ] LLM news-drift bot, forward paper-traded only (weekly horizon, timestamped predictions)
-- [ ] Add walk-forward validation + Deflated Sharpe Ratio / PBO from the start
+- [x] Walk-forward validation + Deflated Sharpe Ratio, with the test and pass/fail gate fixed beforehand ([`docs/model-validation-plan.md`](docs/model-validation-plan.md)); PBO still to add
 - [ ] Layer in news-sentiment features once price/volume baseline is honest
-- [ ] Wire up IBKR paper trading via `ib_async` once backtest clears the bar above
+- [x] Alpaca paper execution layer (`src/live.py`, dry-run by default); live IBKR execution via `ib_async` only if a strategy clears forward paper trading
+- [x] Monthly trend-baseline rebalance scheduled (LaunchAgent) and first paper orders placed 2026-10-02; forward-tracking has started
+- [ ] Pre-register the next experiment (news/LLM drift forward-test, smaller-cap universe, or monthly horizon)
 
 ## Other docs
 
@@ -153,6 +166,7 @@ see that table's note on why.
 - [`docs/academic-literature-review.md`](docs/academic-literature-review.md) — academic evidence review behind the hypothesis.
 - [`docs/tooling-ideas.md`](docs/tooling-ideas.md) — unvetted external tools/examples worth considering later (TradingView, agent-trading MCP servers, dashboard ideas).
 - [`docs/strategy-horizons-and-patterns.md`](docs/strategy-horizons-and-patterns.md) — which horizon the cost structure allows, what the evidence says about candlestick/chart patterns, and how to do per-stock/per-regime pattern selection without overfitting.
+- [`docs/model-validation-plan.md`](docs/model-validation-plan.md) / [`docs/model-results.md`](docs/model-results.md) — the pre-registered model test and its (failed) result.
 - [`docs/baseline-results.md`](docs/baseline-results.md) — first backtest results for the baseline strategies, with caveats.
 - [`docs/trade-and-trader-types.md`](docs/trade-and-trader-types.md) — map of all trade types, trader types, strategy families and asset classes (including crypto and its Canadian constraints), with a ranked possibility list for this project.
 - [`docs/prediction-approach.md`](docs/prediction-approach.md) — open options for what the model should predict (direction/signal vs. exact candle values) and a fast hold-out-the-last-N-days validation loop.
