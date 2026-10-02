@@ -62,7 +62,7 @@ technical/ML/sentiment signals, data sources) is in
 
 | Concern | Choice | Why |
 |---|---|---|
-| Backtesting engine | [vectorbt](https://github.com/polakowo/vectorbt) | Actively maintained, vectorized multi-asset support, built-in Deflated Sharpe Ratio |
+| Backtesting engine | Custom cost-aware engine in [`src/backtest.py`](src/backtest.py) ([vectorbt](https://github.com/polakowo/vectorbt) kept as an option for later parameter sweeps) | Next-open execution, whole shares and IBKR's per-order commission minimums are explicit and unit-tested against the live cost figures; the Deflated Sharpe Ratio still needs adding for the model step |
 | Signal modeling | gradient boosting (LightGBM/XGBoost), patterned on [`stefan-jansen/machine-learning-for-trading`](https://github.com/stefan-jansen/machine-learning-for-trading) | Peer-reviewed support for this class of model; that repo is the closest existing reference implementation for this exact shape of project |
 | Paper execution (strategy validation target) | [ib_async](https://github.com/ib-api-reloaded/ib_async) via IBKR paper trading account | IBKR has real Canadian retail access for opening an account and API-trading US-listed securities; `ib_async` is the actively maintained successor to the now-dead `ib_insync`. CIRO rules bar API orders on *Canadian* marketplaces for any DIY account regardless of broker — not an IBKR limitation, see research doc |
 | Paper execution (website, for now) | [Alpaca](https://alpaca.markets) paper trading API | Pure cloud REST/WebSocket, free unlimited paper trading, no local gateway app to run — much faster to develop the website against. US equities only; doesn't replace IBKR for the Canadian-access goal above |
@@ -72,13 +72,23 @@ technical/ML/sentiment signals, data sources) is in
 ## Project layout
 
 ```
-src/          strategy code: feature engineering, model training, backtest wiring
+src/          research code: data download/cache, IBKR cost model, backtest engine, baseline strategies
+tests/        pytest suite (cost model vs. the live backend's figures, backtest invariants)
 data/         local cache of downloaded historical data (gitignored)
 notebooks/    exploratory analysis
 backtests/    backtest run configs and outputs (gitignored, except summaries)
 docs/         research notes, hypothesis write-ups, decision log
 backend/      Node/TypeScript (Express) service wrapping the Alpaca API — paper account, basic order placement
 frontend/     React + TypeScript (Vite) website — account/positions view, manual + AI-suggested trades
+```
+
+## Running the research baselines
+
+```bash
+/opt/homebrew/bin/python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python -m pytest -q                 # unit tests
+python -m src.run_baselines         # downloads bars on first run (needs backend/.env keys), then backtests
 ```
 
 ## Running the website (paper trading)
@@ -126,10 +136,11 @@ see that table's note on why.
 
 ## Next steps
 
-- [ ] Pick initial stock universe (survivorship-bias-free list) and data source
-- [ ] Build baseline: buy-and-hold benchmark + naive technical-indicator baseline
+- [x] Data source: Alpaca daily bars (SIP, split/dividend-adjusted, free back to 2016) cached in `data/`
+- [ ] Pick the stock universe for the pooled model (survivorship-bias-free list; the baselines use a 10-ETF universe)
+- [x] Baselines: SPY buy-and-hold, equal-weight ETFs, SMA-200 trend, Donchian breakout — results in [`docs/baseline-results.md`](docs/baseline-results.md)
 - [ ] Feature engineering pipeline (price/volume), including candlestick/pattern features on daily and weekly bars
-- [ ] Cost-aware backtest harness using the broker-specific fee models (IBKR per-order minimums, measured spread)
+- [x] Cost-aware backtest harness using the broker-specific fee models (IBKR per-order minimums, assumed spread)
 - [ ] Nested walk-forward validation of any per-stock/per-regime pattern selection, counting every candidate as a trial
 - [ ] LLM news-drift bot, forward paper-traded only (weekly horizon, timestamped predictions)
 - [ ] Add walk-forward validation + Deflated Sharpe Ratio / PBO from the start
@@ -142,5 +153,6 @@ see that table's note on why.
 - [`docs/academic-literature-review.md`](docs/academic-literature-review.md) — academic evidence review behind the hypothesis.
 - [`docs/tooling-ideas.md`](docs/tooling-ideas.md) — unvetted external tools/examples worth considering later (TradingView, agent-trading MCP servers, dashboard ideas).
 - [`docs/strategy-horizons-and-patterns.md`](docs/strategy-horizons-and-patterns.md) — which horizon the cost structure allows, what the evidence says about candlestick/chart patterns, and how to do per-stock/per-regime pattern selection without overfitting.
+- [`docs/baseline-results.md`](docs/baseline-results.md) — first backtest results for the baseline strategies, with caveats.
 - [`docs/trade-and-trader-types.md`](docs/trade-and-trader-types.md) — map of all trade types, trader types, strategy families and asset classes (including crypto and its Canadian constraints), with a ranked possibility list for this project.
 - [`docs/prediction-approach.md`](docs/prediction-approach.md) — open options for what the model should predict (direction/signal vs. exact candle values) and a fast hold-out-the-last-N-days validation loop.

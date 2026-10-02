@@ -1,7 +1,15 @@
-vectorbt
+# Research environment (Python >= 3.10). Create with:
+#   /opt/homebrew/bin/python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 pandas
 numpy
-scikit-learn
-lightgbm
-yfinance
-ib_async
+pyarrow
+requests
+python-dotenv
+pytest
+
+# Added when the pooled weekly model (step 2) starts:
+# scikit-learn
+# lightgbm
+# Optional, for later experiments:
+# vectorbt
+# ib_async
