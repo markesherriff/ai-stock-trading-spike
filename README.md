@@ -128,7 +128,10 @@ see that table's note on why.
 
 - [ ] Pick initial stock universe (survivorship-bias-free list) and data source
 - [ ] Build baseline: buy-and-hold benchmark + naive technical-indicator baseline
-- [ ] Feature engineering pipeline (price/volume)
+- [ ] Feature engineering pipeline (price/volume), including candlestick/pattern features on daily and weekly bars
+- [ ] Cost-aware backtest harness using the broker-specific fee models (IBKR per-order minimums, measured spread)
+- [ ] Nested walk-forward validation of any per-stock/per-regime pattern selection, counting every candidate as a trial
+- [ ] LLM news-drift bot, forward paper-traded only (weekly horizon, timestamped predictions)
 - [ ] Add walk-forward validation + Deflated Sharpe Ratio / PBO from the start
 - [ ] Layer in news-sentiment features once price/volume baseline is honest
 - [ ] Wire up IBKR paper trading via `ib_async` once backtest clears the bar above
@@ -138,4 +141,6 @@ see that table's note on why.
 - [`docs/research-landscape.md`](docs/research-landscape.md) — broker/data/regulatory landscape research behind the stack decisions above.
 - [`docs/academic-literature-review.md`](docs/academic-literature-review.md) — academic evidence review behind the hypothesis.
 - [`docs/tooling-ideas.md`](docs/tooling-ideas.md) — unvetted external tools/examples worth considering later (TradingView, agent-trading MCP servers, dashboard ideas).
+- [`docs/strategy-horizons-and-patterns.md`](docs/strategy-horizons-and-patterns.md) — which horizon the cost structure allows, what the evidence says about candlestick/chart patterns, and how to do per-stock/per-regime pattern selection without overfitting.
+- [`docs/trade-and-trader-types.md`](docs/trade-and-trader-types.md) — map of all trade types, trader types, strategy families and asset classes (including crypto and its Canadian constraints), with a ranked possibility list for this project.
 - [`docs/prediction-approach.md`](docs/prediction-approach.md) — open options for what the model should predict (direction/signal vs. exact candle values) and a fast hold-out-the-last-N-days validation loop.

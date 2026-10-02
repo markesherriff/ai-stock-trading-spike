@@ -74,6 +74,15 @@ open as options, alongside a fast validation method that works for either one.
     the gamification/leaderboard idea already captured from beebots.tech in
     [`tooling-ideas.md`](tooling-ideas.md).
 
+## Pattern features and per-stock selection
+
+Candlestick and chart-pattern signals are best treated as *features* of the model,
+not standalone triggers, and "different patterns for different stocks" is best
+implemented as a pooled model that conditions on stock characteristics and regime,
+not as a per-ticker search over patterns (which is a multiple-testing trap). The
+evidence, the arithmetic and the proposed validation design are in
+[`strategy-horizons-and-patterns.md`](strategy-horizons-and-patterns.md).
+
 ## Where this stands
 
 Neither option is chosen yet. The likely shape is: a direction-classification
