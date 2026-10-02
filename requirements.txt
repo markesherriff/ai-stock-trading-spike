@@ -7,9 +7,10 @@ requests
 python-dotenv
 pytest
 
-# Added when the pooled weekly model (step 2) starts:
-# scikit-learn
-# lightgbm
+# Pooled weekly model (step 2):
+scikit-learn
+scipy
+# lightgbm  (needs libomp: brew install libomp)
 # Optional, for later experiments:
 # vectorbt
 # ib_async

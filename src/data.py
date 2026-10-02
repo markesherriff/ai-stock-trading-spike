@@ -23,6 +23,7 @@ class Prices:
     high: pd.DataFrame
     low: pd.DataFrame
     close: pd.DataFrame
+    volume: pd.DataFrame | None = None
 
     @property
     def symbols(self) -> list[str]:
@@ -69,7 +70,30 @@ def fetch_daily_bars(symbols: list[str], start: str, end: str) -> pd.DataFrame:
 
 
 def _cache_path(symbol: str) -> Path:
-    return CACHE_DIR / f"{symbol}.parquet"
+    return CACHE_DIR / f"{symbol.replace('/', '_')}.parquet"
+
+
+def download_bars(symbols: list[str], start: str, end: str, batch: int = 100) -> dict[str, int]:
+    """Download and cache bars in batches; symbols with no data are skipped. Returns bars per symbol."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    counts = {s: 0 for s in symbols}
+    for i in range(0, len(symbols), batch):
+        chunk = symbols[i : i + batch]
+        fetched = fetch_daily_bars(chunk, start, end)
+        for symbol, part in fetched.groupby("symbol"):
+            part.drop(columns="symbol").to_parquet(_cache_path(str(symbol)), index=False)
+            counts[str(symbol)] = len(part)
+        print(f"  downloaded {min(i + batch, len(symbols))}/{len(symbols)} symbols", flush=True)
+    return counts
+
+
+def load_panel(symbols: list[str]) -> Prices:
+    """Wide price panel from the cache for every symbol that has cached bars."""
+    present = [s for s in symbols if _cache_path(s).exists()]
+    frames = {s: pd.read_parquet(_cache_path(s)).set_index("date") for s in present}
+    wide = {f: pd.DataFrame({s: frames[s][f] for s in present}).sort_index() for f in FIELDS}
+    index = wide["close"].dropna(how="all").index
+    return Prices(*(wide[f].loc[index] for f in ("open", "high", "low", "close")), volume=wide["volume"].loc[index])
 
 
 def load_prices(symbols: list[str], start: str, end: str | None = None, refresh: bool = False) -> Prices:
@@ -87,4 +111,4 @@ def load_prices(symbols: list[str], start: str, end: str | None = None, refresh:
     frames = {s: pd.read_parquet(_cache_path(s)).set_index("date") for s in symbols}
     wide = {f: pd.DataFrame({s: frames[s][f] for s in symbols}).sort_index() for f in FIELDS}
     index = wide["close"].dropna(how="all").index
-    return Prices(*(wide[f].loc[index] for f in ("open", "high", "low", "close")))
+    return Prices(*(wide[f].loc[index] for f in ("open", "high", "low", "close")), volume=wide["volume"].loc[index])
