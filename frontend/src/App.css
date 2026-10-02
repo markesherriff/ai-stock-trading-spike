@@ -1,0 +1,172 @@
+.app {
+  width: 100%;
+  max-width: 720px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.status {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.status-ok {
+  background: #163d26;
+  color: #6fe09b;
+}
+
+.status-down {
+  background: #3d1616;
+  color: #e06f6f;
+}
+
+.panel {
+  background: #171a21;
+  border: 1px solid #272b34;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.muted {
+  color: #8a8f99;
+}
+
+.error {
+  color: #e06f6f;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.stat-grid dt {
+  color: #8a8f99;
+}
+
+.stat-grid dd {
+  margin: 0;
+  text-align: right;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.2rem;
+  border-bottom: 1px solid #272b34;
+}
+
+.trade-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.trade-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #8a8f99;
+}
+
+.trade-form input {
+  background: #0f1115;
+  border: 1px solid #272b34;
+  border-radius: 6px;
+  color: inherit;
+  padding: 0.4rem 0.5rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+button {
+  background: #2c3440;
+  border: 1px solid #3a4452;
+  border-radius: 6px;
+  color: inherit;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #3a4452;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.signal-buy {
+  color: #6fe09b;
+}
+
+.signal-sell {
+  color: #e06f6f;
+}
+
+.signal-hold {
+  color: #e0c76f;
+}
+
+.assumptions {
+  margin-top: 1rem;
+  color: #8a8f99;
+  font-size: 0.85rem;
+}
+
+.assumptions li {
+  margin-bottom: 0.4rem;
+}
+
+.stat-grid + table,
+.stat-grid + .muted {
+  margin-top: 1rem;
+}
+
+.panel h3 {
+  font-size: 0.95rem;
+  margin: 1.25rem 0 0.5rem;
+  color: #c3c7cf;
+}
+
+.panel h2 + h3 {
+  margin-top: 0;
+}
