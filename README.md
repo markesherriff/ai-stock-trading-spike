@@ -30,9 +30,15 @@ point of the spike is to find out, cheaply, before risking anything.
 - **Not** a long-term (multi-year) investing strategy — horizon is daily/weekly,
   where backtesting is tractable.
 - **Not** live-money trading. This repo stops at paper trading. Moving beyond that
-  is a separate, later decision with its own review (including Canadian/IIROC
-  regulatory rules, which have not been researched yet — the regulatory research
-  behind this spike was US-focused).
+  is a separate, later decision with its own review. One piece of Canadian
+  regulation is now resolved, not just flagged: CIRO (formerly IIROC) bars
+  order-execution-only/DIY retail accounts from API-driven automated orders on
+  **Canadian marketplaces** specifically — see
+  [`docs/research-landscape.md`](docs/research-landscape.md#canadian-retail-clients-cannot-api-trade-canadian-listed-securities--this-is-a-real-current-rule-not-forum-folklore).
+  So any future automated (non-paper) phase is necessarily scoped to US-listed
+  equities, regardless of broker — it doesn't change anything this repo does
+  today. Other Canadian regulatory/tax considerations beyond that one rule
+  remain unresearched.
 
 ## Why this shape of project
 
@@ -58,7 +64,8 @@ technical/ML/sentiment signals, data sources) is in
 |---|---|---|
 | Backtesting engine | [vectorbt](https://github.com/polakowo/vectorbt) | Actively maintained, vectorized multi-asset support, built-in Deflated Sharpe Ratio |
 | Signal modeling | gradient boosting (LightGBM/XGBoost), patterned on [`stefan-jansen/machine-learning-for-trading`](https://github.com/stefan-jansen/machine-learning-for-trading) | Peer-reviewed support for this class of model; that repo is the closest existing reference implementation for this exact shape of project |
-| Paper execution | [ib_async](https://github.com/ib-api-reloaded/ib_async) via IBKR paper trading account | IBKR has real Canadian retail access; `ib_async` is the actively maintained successor to the now-dead `ib_insync` |
+| Paper execution (strategy validation target) | [ib_async](https://github.com/ib-api-reloaded/ib_async) via IBKR paper trading account | IBKR has real Canadian retail access for opening an account and API-trading US-listed securities; `ib_async` is the actively maintained successor to the now-dead `ib_insync`. CIRO rules bar API orders on *Canadian* marketplaces for any DIY account regardless of broker — not an IBKR limitation, see research doc |
+| Paper execution (website, for now) | [Alpaca](https://alpaca.markets) paper trading API | Pure cloud REST/WebSocket, free unlimited paper trading, no local gateway app to run — much faster to develop the website against. US equities only; doesn't replace IBKR for the Canadian-access goal above |
 | Historical price data | IBKR historical data API (paper account) and/or `yfinance` for quick iteration | Free tiers sufficient for a daily/weekly-horizon backtest |
 | News/sentiment data | TBD — evaluated during signal-development phase | See gaps noted in the research doc |
 
@@ -70,7 +77,41 @@ data/         local cache of downloaded historical data (gitignored)
 notebooks/    exploratory analysis
 backtests/    backtest run configs and outputs (gitignored, except summaries)
 docs/         research notes, hypothesis write-ups, decision log
+backend/      Node/TypeScript (Express) service wrapping the Alpaca API — paper account, basic order placement
+frontend/     React + TypeScript (Vite) website — account/positions view, manual + AI-suggested trades
 ```
+
+## Running the website (paper trading)
+
+This is a basic web UI for watching an Alpaca **paper** account and placing
+paper trades — by hand or via a placeholder "AI" signal (a moving-average
+crossover stub in [`backend/src/routes/signal.ts`](backend/src/routes/signal.ts),
+to be replaced once the real model from `src/` is trained and validated). A
+React Native app may follow later; the website is faster to iterate on for now.
+
+The website uses **Alpaca**, not IBKR, purely because it's much faster to
+develop against (cloud API, no local gateway app). This doesn't change the
+IBKR choice in the Stack table above for actually validating the strategy —
+see that table's note on why.
+
+1. Sign up for a free account at [alpaca.markets](https://alpaca.markets) and
+   grab your **paper trading** API key/secret from the dashboard (make sure
+   you're viewing the paper account, not live).
+2. Backend:
+   ```bash
+   cd backend
+   npm install
+   cp .env.example .env   # fill in APCA_API_KEY_ID / APCA_API_SECRET_KEY
+   npm run dev
+   ```
+3. Frontend:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+4. Open http://localhost:5173. The backend runs on http://localhost:8000 and
+   reports Alpaca connection status at `/api/health`.
 
 ## Definition of done (for this spike)
 
@@ -91,3 +132,10 @@ docs/         research notes, hypothesis write-ups, decision log
 - [ ] Add walk-forward validation + Deflated Sharpe Ratio / PBO from the start
 - [ ] Layer in news-sentiment features once price/volume baseline is honest
 - [ ] Wire up IBKR paper trading via `ib_async` once backtest clears the bar above
+
+## Other docs
+
+- [`docs/research-landscape.md`](docs/research-landscape.md) — broker/data/regulatory landscape research behind the stack decisions above.
+- [`docs/academic-literature-review.md`](docs/academic-literature-review.md) — academic evidence review behind the hypothesis.
+- [`docs/tooling-ideas.md`](docs/tooling-ideas.md) — unvetted external tools/examples worth considering later (TradingView, agent-trading MCP servers, dashboard ideas).
+- [`docs/prediction-approach.md`](docs/prediction-approach.md) — open options for what the model should predict (direction/signal vs. exact candle values) and a fast hold-out-the-last-N-days validation loop.
